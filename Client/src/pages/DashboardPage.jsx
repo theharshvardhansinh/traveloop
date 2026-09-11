@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,11 @@ function tripStatus(start, end) {
   return 'Ongoing';
 }
 
+function tripDuration(start, end) {
+  const days = Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
+  return `${days} day${days !== 1 ? 's' : ''}`;
+}
+
 /* ── mock data ───────────────────────────────────────────────────────────────── */
 const MOCK_TRIPS = [
   {
@@ -28,11 +33,12 @@ const MOCK_TRIPS = [
     endDate: '2026-08-16',
     transport: 'Car',
     tripType: 'family',
-    tags: ['Spiritual+Nature'],
+    tags: ['Spiritual', 'Nature'],
     from: 'Ahmedabad',
     to: 'Udaipur',
     distanceKm: 262,
     budgetSpent: 18000,
+    coverEmoji: '🏰',
   },
   {
     id: '2',
@@ -41,11 +47,12 @@ const MOCK_TRIPS = [
     endDate: '2026-09-05',
     transport: 'Train',
     tripType: 'friends',
-    tags: ['Adventure'],
+    tags: ['Adventure', 'Beach'],
     from: 'Mumbai',
     to: 'Goa',
     distanceKm: 595,
     budgetSpent: 42000,
+    coverEmoji: '🌊',
   },
   {
     id: '3',
@@ -54,11 +61,12 @@ const MOCK_TRIPS = [
     endDate: '2026-10-27',
     transport: 'Car',
     tripType: 'couple',
-    tags: ['Nature'],
+    tags: ['Nature', 'Mountains'],
     from: 'Delhi',
     to: 'Manali',
     distanceKm: 540,
     budgetSpent: 60000,
+    coverEmoji: '🏔️',
   },
   {
     id: '4',
@@ -67,11 +75,12 @@ const MOCK_TRIPS = [
     endDate: '2025-12-23',
     transport: 'Car',
     tripType: 'friends',
-    tags: ['Nature'],
+    tags: ['Nature', 'Coffee'],
     from: 'Bangalore',
     to: 'Coorg',
     distanceKm: 252,
     budgetSpent: 15000,
+    coverEmoji: '🌿',
   },
   {
     id: '5',
@@ -80,130 +89,117 @@ const MOCK_TRIPS = [
     endDate: '2025-11-13',
     transport: 'Car',
     tripType: 'solo',
-    tags: ['Heritage'],
+    tags: ['Heritage', 'Culture'],
     from: 'Jaipur',
     to: 'Jodhpur',
     distanceKm: 335,
     budgetSpent: 9000,
+    coverEmoji: '🏯',
   },
 ];
 
-const STATS = {
-  totalTrips: 12,
-  distanceKm: 4820,
-  totalSpent: '₹1.2L',
-  coTravellers: 3,
+const TRANSPORT_META = {
+  Car:    { icon: '🚗', color: 'from-blue-500 to-blue-600' },
+  Train:  { icon: '🚆', color: 'from-emerald-500 to-emerald-600' },
+  Flight: { icon: '✈️', color: 'from-violet-500 to-violet-600' },
+  Bus:    { icon: '🚌', color: 'from-amber-500 to-amber-600' },
 };
 
 const TYPE_COLOR = {
-  solo:    'bg-purple-100 text-purple-700',
-  couple:  'bg-pink-100 text-pink-700',
-  friends: 'bg-sky-100 text-sky-700',
-  family:  'bg-amber-100 text-amber-700',
+  solo:    { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-400' },
+  couple:  { bg: 'bg-pink-100',   text: 'text-pink-700',   dot: 'bg-pink-400' },
+  friends: { bg: 'bg-sky-100',    text: 'text-sky-700',    dot: 'bg-sky-400' },
+  family:  { bg: 'bg-amber-100',  text: 'text-amber-700',  dot: 'bg-amber-400' },
 };
 
-const TAG_COLOR = {
-  Adventure:           'bg-emerald-100 text-emerald-700',
-  Nature:              'bg-green-100 text-green-700',
-  Heritage:            'bg-orange-100 text-orange-700',
-  'Spiritual+Nature':  'bg-violet-100 text-violet-700',
-};
+const COVER_GRADIENTS = [
+  'from-violet-500 via-purple-500 to-indigo-600',
+  'from-blue-500 via-cyan-500 to-teal-500',
+  'from-orange-400 via-rose-500 to-pink-600',
+  'from-green-400 via-emerald-500 to-teal-600',
+  'from-amber-400 via-orange-500 to-red-500',
+];
 
-const TRANSPORT_ICON = { Car: '🚗', Train: '🚂', Flight: '✈️', Bus: '🚌' };
-const FILTER_TABS = ['All', 'Upcoming', 'Ongoing', 'Completed', 'Archived'];
-
-/* ── MapPreview ──────────────────────────────────────────────────────────────── */
-function MapPreview({ from, to }) {
-  return (
-    <div className="relative h-32 sm:h-36 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-blue-50 border border-slate-200 flex items-center justify-center mb-4">
-      <div className="absolute inset-0 flex items-center justify-between px-6 pointer-events-none">
-        <div className="w-2.5 h-2.5 rounded-full bg-brand-400 shadow-md shadow-brand-400/40" />
-        <div className="flex-1 mx-3 border-t-2 border-dashed border-brand-300/70" />
-        <div className="w-2.5 h-2.5 rounded-full bg-accent-500 shadow-md shadow-accent-500/40" />
-      </div>
-      <div className="flex flex-col items-center">
-        <span className="text-2xl mb-1">🗺️</span>
-        <span className="text-xs text-slate-400 font-medium tracking-wide">map preview</span>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 pb-2 text-[10px] text-slate-400 font-semibold pointer-events-none">
-        <span>{from}</span>
-        <span>{to}</span>
-      </div>
-    </div>
-  );
-}
+const FILTER_TABS = ['All', 'Upcoming', 'Ongoing', 'Completed'];
 
 /* ── TripCard ─────────────────────────────────────────────────────────────────── */
-function TripCard({ trip, onView, onEdit }) {
+function TripCard({ trip, onView, index }) {
   const status = tripStatus(trip.startDate, trip.endDate);
   const [menuOpen, setMenuOpen] = useState(false);
+  const transport = TRANSPORT_META[trip.transport] || TRANSPORT_META['Car'];
+  const typeStyle = TYPE_COLOR[trip.tripType] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' };
+  const gradient = COVER_GRADIENTS[index % COVER_GRADIENTS.length];
 
-  const statusPill = {
-    Upcoming:  'bg-blue-50 text-blue-600',
-    Ongoing:   'bg-green-50 text-green-600',
-    Completed: 'bg-slate-100 text-slate-500',
-  }[status] ?? 'bg-slate-100 text-slate-500';
+  const statusConfig = {
+    Upcoming:  { pill: 'bg-blue-500/15 text-blue-600 border border-blue-200',   dot: 'bg-blue-500' },
+    Ongoing:   { pill: 'bg-green-500/15 text-green-600 border border-green-200', dot: 'bg-green-500 animate-pulse' },
+    Completed: { pill: 'bg-slate-100 text-slate-500 border border-slate-200',    dot: 'bg-slate-400' },
+  }[status] ?? { pill: 'bg-slate-100 text-slate-500 border border-slate-200', dot: 'bg-slate-400' };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden flex flex-col">
-      <div className="p-4 pb-0">
-        <MapPreview from={trip.from} to={trip.to} />
-      </div>
-      <div className="px-4 pb-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-slate-800 text-sm leading-snug">{trip.name}</h3>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${statusPill}`}>{status}</span>
+    <div
+      className="group bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
+      onClick={() => onView(trip)}
+    >
+      {/* Cover gradient with emoji */}
+      <div className={`relative h-36 bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden`}>
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 50%)'
+        }} />
+        <span className="text-5xl drop-shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+          {trip.coverEmoji || '🗺️'}
+        </span>
+        {/* Transport badge top right */}
+        <div className={`absolute top-3 right-3 bg-gradient-to-r ${transport.color} text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1`}>
+          <span>{transport.icon}</span>
+          <span>{trip.transport}</span>
         </div>
-        <p className="text-xs text-slate-400 mb-3">{formatDateRange(trip.startDate, trip.endDate)}</p>
+        {/* Status dot + pill top left */}
+        <div className={`absolute top-3 left-3 ${statusConfig.pill} text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 backdrop-blur-sm`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+          {status}
+        </div>
+      </div>
+
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Route */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[11px] font-semibold text-slate-400">{trip.from}</span>
+          <span className="flex-1 border-t border-dashed border-slate-200" />
+          <span className="text-slate-300 text-xs">→</span>
+          <span className="flex-1 border-t border-dashed border-slate-200" />
+          <span className="text-[11px] font-semibold text-slate-400">{trip.to}</span>
+        </div>
+        <h3 className="font-bold text-slate-800 text-sm leading-snug mb-1.5 group-hover:text-violet-700 transition-colors">
+          {trip.name}
+        </h3>
+        <p className="text-[11px] text-slate-400 mb-3">{formatDateRange(trip.startDate, trip.endDate)}</p>
+
+        {/* Tags row */}
         <div className="flex flex-wrap gap-1.5 mb-4">
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
-            {TRANSPORT_ICON[trip.transport]} {trip.transport}
-          </span>
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLOR[trip.tripType] ?? 'bg-slate-100 text-slate-600'}`}>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${typeStyle.bg} ${typeStyle.text}`}>
             {trip.tripType.charAt(0).toUpperCase() + trip.tripType.slice(1)}
           </span>
-          {trip.tags.map((t) => (
-            <span key={t} className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TAG_COLOR[t] ?? 'bg-slate-100 text-slate-500'}`}>
+          {trip.tags.slice(0, 2).map((t) => (
+            <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
               {t}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-2 mt-auto">
-          <button
-            id={`btn-view-trip-${trip.id}`}
-            onClick={() => onView(trip)}
-            className="flex-1 py-2 text-xs font-semibold rounded-lg border border-brand-200 text-brand-600 bg-brand-50 hover:bg-brand-100 active:scale-95 transition-all"
-          >
-            View
-          </button>
-          <button
-            id={`btn-edit-trip-${trip.id}`}
-            onClick={() => onEdit(trip)}
-            className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 active:scale-95 transition-all"
-          >
-            Edit
-          </button>
-          <div className="relative">
-            <button
-              id={`btn-menu-trip-${trip.id}`}
-              onClick={() => setMenuOpen((p) => !p)}
-              className="w-8 h-8 rounded-lg border border-slate-200 text-slate-400 hover:bg-slate-50 flex items-center justify-center text-sm leading-none active:scale-95 transition-all"
-            >
-              •••
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-9 z-20 bg-white border border-slate-200 rounded-xl shadow-xl py-1 w-36">
-                {['Duplicate', 'Share', 'Archive', 'Delete'].map((action) => (
-                  <button
-                    key={action}
-                    className={`w-full text-left px-3 py-2.5 text-xs font-medium transition-colors hover:bg-slate-50 ${action === 'Delete' ? 'text-red-500 hover:bg-red-50' : 'text-slate-700'}`}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            )}
+
+        {/* Footer stats */}
+        <div className="mt-auto pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p className="text-xs font-bold text-slate-800">{tripDuration(trip.startDate, trip.endDate)}</p>
+            <p className="text-[10px] text-slate-400">Duration</p>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-800">{trip.distanceKm} km</p>
+            <p className="text-[10px] text-slate-400">Distance</p>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-800">₹{(trip.budgetSpent / 1000).toFixed(0)}K</p>
+            <p className="text-[10px] text-slate-400">Budget</p>
           </div>
         </div>
       </div>
@@ -212,174 +208,144 @@ function TripCard({ trip, onView, onEdit }) {
 }
 
 /* ── StatCard ─────────────────────────────────────────────────────────────────── */
-function StatCard({ value, label, sub }) {
+function StatCard({ value, label, sub, icon, gradient }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 min-w-0">
-      <p className="text-xl sm:text-2xl font-bold text-slate-800 leading-none mb-1">{value}</p>
-      <p className="text-xs font-semibold text-slate-700">{label}</p>
-      <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>
-    </div>
-  );
-}
-
-/* ── NewTripModal ─────────────────────────────────────────────────────────────── */
-function NewTripModal({ onClose }) {
-  const [form, setForm] = useState({
-    from: '', to: '', startDate: '', endDate: '', tripType: 'solo', transport: 'Car',
-  });
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-slate-200" />
-        </div>
-        <div className="flex items-center justify-between px-5 sm:px-6 pt-4 sm:pt-5 pb-4 border-b border-slate-100">
-          <h2 className="font-bold text-slate-800 text-base">Plan a New Trip ✈️</h2>
-          <button id="btn-close-new-trip" onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none transition-colors p-1">✕</button>
-        </div>
-        <div className="px-5 sm:px-6 py-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="auth-label">From</label>
-              <input id="input-trip-from" className="auth-input" placeholder="Mumbai" value={form.from} onChange={set('from')} />
-            </div>
-            <div>
-              <label className="auth-label">To</label>
-              <input id="input-trip-to" className="auth-input" placeholder="Goa" value={form.to} onChange={set('to')} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="auth-label">Start Date</label>
-              <input id="input-trip-start" type="date" className="auth-input" value={form.startDate} onChange={set('startDate')} />
-            </div>
-            <div>
-              <label className="auth-label">End Date</label>
-              <input id="input-trip-end" type="date" className="auth-input" value={form.endDate} onChange={set('endDate')} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="auth-label">Trip Type</label>
-              <select id="select-trip-type" className="auth-input" value={form.tripType} onChange={set('tripType')}>
-                {['solo', 'couple', 'friends', 'family'].map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3 px-5 sm:px-6 pb-6">
-          <button id="btn-cancel-new-trip" onClick={onClose} className="flex-1 py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">
-            Cancel
-          </button>
-          <button
-            id="btn-create-trip"
-            onClick={onClose}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-md shadow-brand-500/25 active:scale-95 transition-all"
-          >
-            Create Trip
-          </button>
-        </div>
-      </div>
+    <div className={`relative bg-gradient-to-br ${gradient} rounded-2xl p-5 text-white overflow-hidden flex-1 min-w-[130px]`}>
+      <div className="absolute -top-4 -right-4 text-5xl opacity-20 select-none">{icon}</div>
+      <p className="text-2xl font-black leading-none mb-1">{value}</p>
+      <p className="text-xs font-semibold text-white/90">{label}</p>
+      <p className="text-[10px] text-white/60 mt-0.5">{sub}</p>
     </div>
   );
 }
 
 /* ── Navbar ───────────────────────────────────────────────────────────────────── */
-function Navbar({ user, onLogout }) {
-  const NAV = ['My Trips', 'Discover', 'Budget', 'Profile'];
-  const [active, setActive] = useState('My Trips');
-  const [mobileOpen, setMobileOpen] = useState(false);
+function Navbar({ user, onNewTrip }) {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
-    <>
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-white font-bold text-sm">T</div>
-            <span className="font-bold text-slate-800 text-sm tracking-tight">Traveloop</span>
+    <header className={`sticky top-0 z-30 transition-all duration-300 ${
+      scrolled
+        ? 'bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm'
+        : 'bg-white/80 backdrop-blur border-b border-slate-100'
+    }`}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 shrink-0 mr-2">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white font-black text-sm shadow-md shadow-violet-500/30">
+            T
           </div>
-          <nav className="hidden sm:flex items-center gap-1 flex-1">
-            {NAV.map((item) => (
-              <button
-                key={item}
-                id={`nav-${item.toLowerCase().replace(/\s+/g, '-')}`}
-                onClick={() => setActive(item)}
-                className={`px-3 py-1.5 text-sm font-medium transition-all ${
-                  active === item ? 'text-brand-600 border-b-2 border-brand-500' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-          <div className="flex-1 sm:hidden" />
+          <span className="font-extrabold text-slate-800 text-base tracking-tight">Traveloop</span>
+        </div>
+
+        {/* Nav links */}
+        <nav className="hidden sm:flex items-center gap-1 flex-1">
+          {['My Trips', 'Discover', 'Budget', 'Profile'].map((item, i) => (
+            <button
+              key={item}
+              id={`nav-${item.toLowerCase().replace(/\s+/g, '-')}`}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all ${
+                i === 0
+                  ? 'text-violet-700 bg-violet-50 font-semibold'
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          {/* New trip button */}
+          <button
+            id="btn-new-trip-nav"
+            onClick={onNewTrip}
+            className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-violet-500/25 active:scale-95 transition-all"
+          >
+            <span className="text-base leading-none">+</span> New Trip
+          </button>
+
+          {/* Avatar */}
           <button
             id="btn-nav-avatar"
-            className="w-8 h-8 rounded-full border-2 border-slate-200 bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 hover:border-brand-300 transition-all"
-            title={user?.name ?? 'Profile'}
-            onClick={onLogout}
+            onClick={handleLogout}
+            title={`${user?.name ?? 'User'} (click to sign out)`}
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all"
           >
             {user?.name?.charAt(0).toUpperCase() ?? 'U'}
           </button>
-          <button
-            id="btn-nav-hamburger"
-            onClick={() => setMobileOpen((p) => !p)}
-            className="sm:hidden flex flex-col items-center justify-center gap-1.5 w-9 h-9 rounded-lg hover:bg-slate-100 transition-all"
-            aria-label="Toggle navigation"
-          >
-            <span className={`block w-5 h-0.5 bg-slate-600 transition-all duration-200 origin-center ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-            <span className={`block w-5 h-0.5 bg-slate-600 transition-all duration-200 ${mobileOpen ? 'opacity-0 scale-x-0' : ''}`} />
-            <span className={`block w-5 h-0.5 bg-slate-600 transition-all duration-200 origin-center ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-          </button>
         </div>
-      </header>
-      {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)}>
-          <div
-            className="absolute top-14 left-0 right-0 bg-white border-b border-slate-200 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {NAV.map((item) => (
-              <button
-                key={item}
-                onClick={() => { setActive(item); setMobileOpen(false); }}
-                className={`w-full text-left px-5 py-3.5 text-sm font-medium border-b border-slate-50 last:border-0 transition-colors ${
-                  active === item ? 'text-brand-600 bg-brand-50' : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-            <div className="px-5 py-3 border-t border-slate-100">
-              <button onClick={onLogout} className="text-sm text-red-500 font-medium">Sign out</button>
-            </div>
-          </div>
+      </div>
+    </header>
+  );
+}
+
+/* ── HeroBanner ───────────────────────────────────────────────────────────────── */
+function HeroBanner({ user, tripCount, onNewTrip }) {
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden mb-6 bg-gradient-to-br from-slate-900 via-violet-950 to-indigo-900 p-6 sm:p-8">
+      {/* Decorative blobs */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p className="text-violet-300 text-sm font-medium mb-1">
+            ✈️ {greeting()}, {user?.name?.split(' ')[0] ?? 'Explorer'}!
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight mb-2">
+            Your Travel<br className="sm:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-cyan-300">Dashboard</span>
+          </h1>
+          <p className="text-slate-400 text-sm">
+            {tripCount} trip{tripCount !== 1 ? 's' : ''} planned · AI-powered itinerary builder ready
+          </p>
         </div>
-      )}
-    </>
+        <button
+          id="btn-hero-new-trip"
+          onClick={onNewTrip}
+          className="self-start sm:self-center flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-400 hover:to-indigo-400 shadow-lg shadow-violet-500/30 active:scale-95 transition-all whitespace-nowrap"
+        >
+          <span className="text-lg">✨</span>
+          Plan New Trip with AI
+        </button>
+      </div>
+    </div>
   );
 }
 
 /* ── DashboardPage ────────────────────────────────────────────────────────────── */
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('All');
-  const [showModal, setShowModal] = useState(false);
   const goToBuilder = () => navigate('/itinerary-builder');
 
   const [trips, setTrips] = useState(() => {
     const saved = localStorage.getItem('traveloop_trips');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
         console.error(e);
       }
@@ -388,85 +354,118 @@ export default function DashboardPage() {
     return MOCK_TRIPS;
   });
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
-
   const filtered = trips.filter((t) => {
     if (filter === 'All') return true;
-    if (filter === 'Archived') return false;
     return tripStatus(t.startDate, t.endDate) === filter;
   });
 
   const activeCount   = trips.filter((t) => ['Upcoming', 'Ongoing'].includes(tripStatus(t.startDate, t.endDate))).length;
-  const upcomingCount = trips.filter((t) => tripStatus(t.startDate, t.endDate) === 'Upcoming').length;
-  const archivedCount = trips.filter((t) => tripStatus(t.startDate, t.endDate) === 'Completed').length;
+  const totalDistKm   = trips.reduce((sum, t) => sum + (t.distanceKm || 0), 0);
+  const totalBudget   = trips.reduce((sum, t) => sum + (t.budgetSpent || 0), 0);
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa]">
-      <Navbar user={user} onLogout={handleLogout} />
+    <div className="min-h-screen bg-[#f5f5fa]">
+      <Navbar user={user} onNewTrip={goToBuilder} />
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="flex items-center justify-between mb-5 sm:mb-6">
+        {/* Hero Banner */}
+        <HeroBanner user={user} tripCount={trips.length} onNewTrip={goToBuilder} />
+
+        {/* Stats row */}
+        <div className="flex gap-3 mb-6 overflow-x-auto pb-1">
+          <StatCard
+            value={trips.length}
+            label="Total Trips"
+            sub="all time"
+            icon="🗺️"
+            gradient="from-violet-500 to-indigo-600"
+          />
+          <StatCard
+            value={`${totalDistKm.toLocaleString()} km`}
+            label="Distance"
+            sub="lifetime traveled"
+            icon="🛣️"
+            gradient="from-emerald-500 to-teal-600"
+          />
+          <StatCard
+            value={`₹${(totalBudget / 1000).toFixed(0)}K`}
+            label="Total Spent"
+            sub="estimated budget"
+            icon="💳"
+            gradient="from-orange-500 to-rose-500"
+          />
+          <StatCard
+            value={activeCount}
+            label="Active Trips"
+            sub="ongoing & upcoming"
+            icon="✈️"
+            gradient="from-sky-500 to-blue-600"
+          />
+        </div>
+
+        {/* Filter tabs + heading */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800">My Trips</h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-              {activeCount} active · {upcomingCount} upcoming · {archivedCount} archived
-            </p>
+            <h2 className="text-lg font-bold text-slate-800">My Trips</h2>
+            <p className="text-xs text-slate-400">{filtered.length} trip{filtered.length !== 1 ? 's' : ''} shown</p>
           </div>
-          <button
-            id="btn-new-trip"
-            onClick={goToBuilder}
-            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-brand-600 border border-brand-200 bg-white hover:bg-brand-50 shadow-sm active:scale-95 transition-all whitespace-nowrap"
-          >
-            + New Trip
-          </button>
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab}
+                id={`filter-${tab.toLowerCase()}`}
+                onClick={() => setFilter(tab)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap border ${
+                  filter === tab
+                    ? 'bg-slate-900 text-white border-slate-900 shadow'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2 mb-5 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab}
-              id={`filter-${tab.toLowerCase()}`}
-              onClick={() => setFilter(tab)}
-              className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all border whitespace-nowrap shrink-0 ${
-                filter === tab
-                  ? 'bg-slate-800 text-white border-slate-800 shadow'
-                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+
+        {/* Trip cards grid */}
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
-            {filtered.map((trip) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-8">
+            {filtered.map((trip, index) => (
               <TripCard
                 key={trip.id}
                 trip={trip}
+                index={index}
                 onView={(t) => navigate(`/itinerary/${t.id}`)}
-                onEdit={(t) => navigate(`/itinerary/${t.id}`)}
               />
             ))}
+            {/* Quick plan card */}
+            <button
+              onClick={goToBuilder}
+              className="group border-2 border-dashed border-violet-200 rounded-2xl flex flex-col items-center justify-center gap-3 py-12 hover:border-violet-400 hover:bg-violet-50/50 transition-all duration-200 text-slate-400 hover:text-violet-600 min-h-[280px]"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-violet-100 group-hover:bg-violet-200 flex items-center justify-center text-2xl transition-all">
+                ✨
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold">Plan New Trip</p>
+                <p className="text-xs mt-0.5 opacity-70">AI itinerary in seconds</p>
+              </div>
+            </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-20 text-slate-400 mb-6 sm:mb-8">
-            <span className="text-5xl mb-3">🗺️</span>
-            <p className="font-semibold text-slate-500">No {filter !== 'All' ? filter.toLowerCase() : ''} trips yet</p>
-            <p className="text-sm mt-1">Plan your next adventure!</p>
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 mb-8 bg-white rounded-2xl border border-slate-200">
+            <span className="text-5xl mb-4">🗺️</span>
+            <p className="font-bold text-slate-500 text-base">No {filter !== 'All' ? filter.toLowerCase() : ''} trips yet</p>
+            <p className="text-sm mt-1 mb-5">Plan your next adventure with AI!</p>
+            <button
+              onClick={goToBuilder}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 shadow-md hover:shadow-lg active:scale-95 transition-all"
+            >
+              ✨ Generate AI Itinerary
+            </button>
           </div>
         )}
-
-        {/* Stats row */}
-        <div className="flex gap-4 flex-wrap">
-          <StatCard value={STATS.totalTrips}          label="Total Trips"       sub="all time" />
-          <StatCard value={`${STATS.distanceKm} km`}  label="Distance Covered"  sub="lifetime" />
-          <StatCard value={STATS.totalSpent}           label="Total Spent"       sub="estimated" />
-          <StatCard value={STATS.coTravellers}         label="Co-travellers"     sub="active shares" />
-        </div>
       </main>
-
-      {showModal && <NewTripModal onClose={() => setShowModal(false)} />}
     </div>
   );
 }

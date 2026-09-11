@@ -12,70 +12,24 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   return (
     <Routes>
-      {/* Public auth — unified Sign In + Register tabs */}
+      {/* Root redirect to Dashboard */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      {/* Public auth pages */}
       <Route path="/login"        element={<LoginPage />} />
       <Route path="/signup"       element={<Navigate to="/login?tab=register" replace />} />
       <Route path="/admin/signup" element={<AdminSignupPage />} />
 
-      {/* Protected — users */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Main App Routes */}
+      <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/itinerary/:id" element={<ItineraryDetailsPage />} />
+      <Route path="/budget/:id" element={<BudgetPage />} />
+      <Route path="/checklist/:id" element={<ChecklistPage />} />
+      <Route path="/itinerary-builder" element={<ItineraryBuilderPage />} />
+      <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
 
-      <Route
-        path="/itinerary/:id"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <ItineraryDetailsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/budget/:id"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <BudgetPage />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/checklist/:id"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <ChecklistPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Protected — itinerary builder */}
-      <Route
-        path="/itinerary-builder"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <ItineraryBuilderPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Protected — admins */}
-      <Route
-        path="/admin/dashboard"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <AdminDashboardPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Default redirect */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Default redirect to Dashboard */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

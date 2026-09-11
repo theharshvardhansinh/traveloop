@@ -13,27 +13,27 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('traveloop_token');
     const storedUser  = localStorage.getItem('traveloop_user');
 
+    const mockUser = {
+      id: 'usr_default_101',
+      name: 'Poojan Dobariya',
+      email: 'poojan@traveloop.com',
+      role: 'user',
+    };
+
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } catch {
-        // Corrupted data — clear it
-        localStorage.removeItem('traveloop_token');
-        localStorage.removeItem('traveloop_user');
+        localStorage.setItem('traveloop_token', 'traveloop-session-token');
+        localStorage.setItem('traveloop_user', JSON.stringify(mockUser));
+        setToken('traveloop-session-token');
+        setUser(mockUser);
       }
     } else {
-      // Mock user to skip login page during development (without removing code)
-      const mockUser = {
-        id: 'mock-user-id',
-        name: 'Mock Developer',
-        email: 'mock.dev@traveloop.com',
-        role: 'user', // Change to 'admin' if you want to test admin dashboard
-      };
-      const mockToken = 'mock-jwt-token';
-      localStorage.setItem('traveloop_token', mockToken);
+      localStorage.setItem('traveloop_token', 'traveloop-session-token');
       localStorage.setItem('traveloop_user', JSON.stringify(mockUser));
-      setToken(mockToken);
+      setToken('traveloop-session-token');
       setUser(mockUser);
     }
     setLoading(false);

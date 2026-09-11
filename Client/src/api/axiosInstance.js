@@ -23,10 +23,9 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log error cleanly without dropping user session
     if (error.response?.status === 401) {
-      // Token expired or invalid — clear local storage
-      localStorage.removeItem('traveloop_token');
-      localStorage.removeItem('traveloop_user');
+      console.warn('⚠️ API returned 401 Unauthorized (operating in open demo mode)');
     }
     return Promise.reject(error);
   }
