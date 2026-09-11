@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken]     = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ─── Bootstrap: restore session from localStorage ──────────────────────────
+  // ─── Bootstrap: restore session from localStorage or mock one ──────────────
   useEffect(() => {
     const storedToken = localStorage.getItem('traveloop_token');
     const storedUser  = localStorage.getItem('traveloop_user');
@@ -22,6 +22,19 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('traveloop_token');
         localStorage.removeItem('traveloop_user');
       }
+    } else {
+      // Mock user to skip login page during development (without removing code)
+      const mockUser = {
+        id: 'mock-user-id',
+        name: 'Mock Developer',
+        email: 'mock.dev@traveloop.com',
+        role: 'user', // Change to 'admin' if you want to test admin dashboard
+      };
+      const mockToken = 'mock-jwt-token';
+      localStorage.setItem('traveloop_token', mockToken);
+      localStorage.setItem('traveloop_user', JSON.stringify(mockUser));
+      setToken(mockToken);
+      setUser(mockUser);
     }
     setLoading(false);
   }, []);

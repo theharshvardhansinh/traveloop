@@ -375,20 +375,33 @@ export default function DashboardPage() {
   const [showModal, setShowModal] = useState(false);
   const goToBuilder = () => navigate('/itinerary-builder');
 
+  const [trips, setTrips] = useState(() => {
+    const saved = localStorage.getItem('traveloop_trips');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    localStorage.setItem('traveloop_trips', JSON.stringify(MOCK_TRIPS));
+    return MOCK_TRIPS;
+  });
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  const filtered = MOCK_TRIPS.filter((t) => {
+  const filtered = trips.filter((t) => {
     if (filter === 'All') return true;
     if (filter === 'Archived') return false;
     return tripStatus(t.startDate, t.endDate) === filter;
   });
 
-  const activeCount   = MOCK_TRIPS.filter((t) => ['Upcoming', 'Ongoing'].includes(tripStatus(t.startDate, t.endDate))).length;
-  const upcomingCount = MOCK_TRIPS.filter((t) => tripStatus(t.startDate, t.endDate) === 'Upcoming').length;
-  const archivedCount = MOCK_TRIPS.filter((t) => tripStatus(t.startDate, t.endDate) === 'Completed').length;
+  const activeCount   = trips.filter((t) => ['Upcoming', 'Ongoing'].includes(tripStatus(t.startDate, t.endDate))).length;
+  const upcomingCount = trips.filter((t) => tripStatus(t.startDate, t.endDate) === 'Upcoming').length;
+  const archivedCount = trips.filter((t) => tripStatus(t.startDate, t.endDate) === 'Completed').length;
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -431,8 +444,8 @@ export default function DashboardPage() {
               <TripCard
                 key={trip.id}
                 trip={trip}
-                onView={(t) => console.log('view', t.id)}
-                onEdit={(t) => console.log('edit', t.id)}
+                onView={(t) => navigate(`/itinerary/${t.id}`)}
+                onEdit={(t) => navigate(`/itinerary/${t.id}`)}
               />
             ))}
           </div>

@@ -4,6 +4,9 @@ import AdminSignupPage from './pages/AdminSignupPage';
 import DashboardPage from './pages/DashboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import ItineraryBuilderPage from './pages/ItineraryBuilderPage';
+import ItineraryDetailsPage from './pages/ItineraryDetailsPage';
+import BudgetPage from './pages/BudgetPage';
+import ChecklistPage from './pages/ChecklistPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -20,6 +23,33 @@ function App() {
         element={
           <ProtectedRoute requiredRole="user">
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/itinerary/:id"
+        element={
+          <ProtectedRoute requiredRole="user">
+            <ItineraryDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/budget/:id"
+        element={
+          <ProtectedRoute requiredRole="user">
+            <BudgetPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/checklist/:id"
+        element={
+          <ProtectedRoute requiredRole="user">
+            <ChecklistPage />
           </ProtectedRoute>
         }
       />

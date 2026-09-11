@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axiosInstance from '../api/axiosInstance';
 import { useAuth } from '../context/AuthContext';
@@ -50,7 +50,13 @@ const travelPreferences = ['Adventure', 'Beach', 'Cultural', 'City Break', 'Natu
 export default function LoginPage() {
   const navigate    = useNavigate();
   const location    = useLocation();
-  const { login }   = useAuth();
+  const { login, isAuthenticated, role }   = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(role === 'admin' ? '/admin/dashboard' : '/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, role, navigate]);
 
   // Default tab from URL param e.g. /login?tab=register
   const defaultTab = new URLSearchParams(location.search).get('tab') === 'register' ? 'register' : 'signin';
