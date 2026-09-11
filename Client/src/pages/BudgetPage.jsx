@@ -8,6 +8,27 @@ export default function BudgetPage() {
   const { user, logout } = useAuth();
   const [trip, setTrip] = useState(null);
   const [targetBudget, setTargetBudget] = useState(18000);
+  const [selectedCurrency, setSelectedCurrency] = useState('INR');
+  const [exchangeRates, setExchangeRates] = useState({ INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0094, AED: 0.044 });
+
+  useEffect(() => {
+    // Fetch live currency exchange rates
+    fetch('http://localhost:5000/api/itinerary/currency/rates')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.rates) setExchangeRates(data.rates);
+      })
+      .catch((err) => console.warn('Exchange rates fetch error:', err));
+  }, []);
+
+  const rate = exchangeRates[selectedCurrency] || 1;
+  const currencySymbolMap = { INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'AED ' };
+  const symbol = currencySymbolMap[selectedCurrency] || selectedCurrency;
+
+  const fmtCost = (amountInINR) => {
+    const converted = Math.round(amountInINR * rate);
+    return `${symbol}${converted.toLocaleString()}`;
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('traveloop_trips');
@@ -118,9 +139,25 @@ export default function BudgetPage() {
               3-day trip · {trip.tripType} · {trip.transport}
             </p>
           </div>
-          <button className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
-            Export Report
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
+              <span className="text-xs font-semibold text-slate-400">Currency:</span>
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="text-xs font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+              >
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="AED">AED (د.إ)</option>
+              </select>
+            </div>
+            <button className="px-4 py-2 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
+              Export Report
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -165,7 +202,7 @@ export default function BudgetPage() {
                   <div key={c.label} className="space-y-2">
                     <div className="flex justify-between items-center text-xs font-bold">
                       <span className="text-slate-500">{c.label}</span>
-                      <span className="text-slate-800">₹{c.value.toLocaleString()}</span>
+                      <span className="text-slate-800">{fmtCost(c.value)}</span>
                     </div>
                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div
