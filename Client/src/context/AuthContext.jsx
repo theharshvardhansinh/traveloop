@@ -8,33 +8,20 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken]     = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ─── Bootstrap: restore session from localStorage or mock one ──────────────
+  // ─── Bootstrap: restore session from localStorage ──────────────
   useEffect(() => {
     const storedToken = localStorage.getItem('traveloop_token');
     const storedUser  = localStorage.getItem('traveloop_user');
-
-    const mockUser = {
-      id: 'usr_default_101',
-      name: 'Poojan Dobariya',
-      email: 'poojan@traveloop.com',
-      role: 'user',
-    };
 
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } catch {
-        localStorage.setItem('traveloop_token', 'traveloop-session-token');
-        localStorage.setItem('traveloop_user', JSON.stringify(mockUser));
-        setToken('traveloop-session-token');
-        setUser(mockUser);
+        // Corrupted data — clear it
+        localStorage.removeItem('traveloop_token');
+        localStorage.removeItem('traveloop_user');
       }
-    } else {
-      localStorage.setItem('traveloop_token', 'traveloop-session-token');
-      localStorage.setItem('traveloop_user', JSON.stringify(mockUser));
-      setToken('traveloop-session-token');
-      setUser(mockUser);
     }
     setLoading(false);
   }, []);
