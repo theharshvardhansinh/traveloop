@@ -24,79 +24,7 @@ function tripDuration(start, end) {
   return `${days} day${days !== 1 ? 's' : ''}`;
 }
 
-/* ── mock data ───────────────────────────────────────────────────────────────── */
-const MOCK_TRIPS = [
-  {
-    id: '1',
-    name: 'Ahmedabad → Udaipur',
-    startDate: '2026-08-14',
-    endDate: '2026-08-16',
-    transport: 'Car',
-    tripType: 'family',
-    tags: ['Spiritual', 'Nature'],
-    from: 'Ahmedabad',
-    to: 'Udaipur',
-    distanceKm: 262,
-    budgetSpent: 18000,
-    coverEmoji: '🏰',
-  },
-  {
-    id: '2',
-    name: 'Mumbai → Goa',
-    startDate: '2026-09-01',
-    endDate: '2026-09-05',
-    transport: 'Train',
-    tripType: 'friends',
-    tags: ['Adventure', 'Beach'],
-    from: 'Mumbai',
-    to: 'Goa',
-    distanceKm: 595,
-    budgetSpent: 42000,
-    coverEmoji: '🌊',
-  },
-  {
-    id: '3',
-    name: 'Delhi → Manali',
-    startDate: '2026-10-20',
-    endDate: '2026-10-27',
-    transport: 'Car',
-    tripType: 'couple',
-    tags: ['Nature', 'Mountains'],
-    from: 'Delhi',
-    to: 'Manali',
-    distanceKm: 540,
-    budgetSpent: 60000,
-    coverEmoji: '🏔️',
-  },
-  {
-    id: '4',
-    name: 'Bangalore → Coorg',
-    startDate: '2025-12-20',
-    endDate: '2025-12-23',
-    transport: 'Car',
-    tripType: 'friends',
-    tags: ['Nature', 'Coffee'],
-    from: 'Bangalore',
-    to: 'Coorg',
-    distanceKm: 252,
-    budgetSpent: 15000,
-    coverEmoji: '🌿',
-  },
-  {
-    id: '5',
-    name: 'Jaipur → Jodhpur',
-    startDate: '2025-11-10',
-    endDate: '2025-11-13',
-    transport: 'Car',
-    tripType: 'solo',
-    tags: ['Heritage', 'Culture'],
-    from: 'Jaipur',
-    to: 'Jodhpur',
-    distanceKm: 335,
-    budgetSpent: 9000,
-    coverEmoji: '🏯',
-  },
-];
+
 
 const TRANSPORT_META = {
   Car:    { icon: '🚗', color: 'from-blue-500 to-blue-600' },
@@ -345,13 +273,12 @@ export default function DashboardPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error(e);
       }
     }
-    localStorage.setItem('traveloop_trips', JSON.stringify(MOCK_TRIPS));
-    return MOCK_TRIPS;
+    return [];
   });
 
   const filtered = trips.filter((t) => {

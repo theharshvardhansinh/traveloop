@@ -40,13 +40,22 @@ const CITIES = [
   { id: 'ahmedabad', name: 'Ahmedabad', state: 'Gujarat', x: 150, y: 200 },
   { id: 'udaipur', name: 'Udaipur', state: 'Rajasthan', x: 160, y: 160 },
   { id: 'mumbai', name: 'Mumbai', state: 'Maharashtra', x: 160, y: 280 },
+  { id: 'pune', name: 'Pune', state: 'Maharashtra', x: 175, y: 290 },
   { id: 'goa', name: 'Goa', state: 'Goa', x: 170, y: 340 },
   { id: 'delhi', name: 'Delhi', state: 'NCR', x: 230, y: 90 },
-  { id: 'manali', name: 'Manali', state: 'Himachal Pradesh', x: 250, y: 40 },
-  { id: 'bangalore', name: 'Bangalore', state: 'Karnataka', x: 230, y: 320 },
-  { id: 'coorg', name: 'Coorg', state: 'Karnataka', x: 200, y: 340 },
+  { id: 'agra', name: 'Agra', state: 'Uttar Pradesh', x: 235, y: 110 },
   { id: 'jaipur', name: 'Jaipur', state: 'Rajasthan', x: 200, y: 130 },
   { id: 'jodhpur', name: 'Jodhpur', state: 'Rajasthan', x: 130, y: 130 },
+  { id: 'manali', name: 'Manali', state: 'Himachal Pradesh', x: 250, y: 40 },
+  { id: 'shimla', name: 'Shimla', state: 'Himachal Pradesh', x: 245, y: 55 },
+  { id: 'rishikesh', name: 'Rishikesh', state: 'Uttarakhand', x: 255, y: 75 },
+  { id: 'varanasi', name: 'Varanasi', state: 'Uttar Pradesh', x: 285, y: 140 },
+  { id: 'kolkata', name: 'Kolkata', state: 'West Bengal', x: 320, y: 180 },
+  { id: 'hyderabad', name: 'Hyderabad', state: 'Telangana', x: 220, y: 270 },
+  { id: 'bangalore', name: 'Bangalore', state: 'Karnataka', x: 230, y: 320 },
+  { id: 'chennai', name: 'Chennai', state: 'Tamil Nadu', x: 250, y: 330 },
+  { id: 'coorg', name: 'Coorg', state: 'Karnataka', x: 200, y: 340 },
+  { id: 'kochi', name: 'Kochi', state: 'Kerala', x: 210, y: 360 },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -105,8 +114,10 @@ function Navbar({ user }) {
    Interactive Map Component with curved routes and animateMotion
 ───────────────────────────────────────────────────────────────────────────── */
 function InteractiveMap({ startLocation, destination, onSelectStart, onSelectDest, step }) {
-  const startCity = CITIES.find(c => c.name.toLowerCase() === (startLocation || '').trim().toLowerCase());
-  const destCity = CITIES.find(c => c.name.toLowerCase() === (destination || '').trim().toLowerCase());
+  const startLoc = (startLocation || '').trim().toLowerCase();
+  const destLoc = (destination || '').trim().toLowerCase();
+  const startCity = CITIES.find(c => c.name.toLowerCase() === startLoc || (startLoc && (c.name.toLowerCase().includes(startLoc) || startLoc.includes(c.name.toLowerCase()))));
+  const destCity = CITIES.find(c => c.name.toLowerCase() === destLoc || (destLoc && (c.name.toLowerCase().includes(destLoc) || destLoc.includes(c.name.toLowerCase()))));
 
   const handleCityClick = (city) => {
     if (step === 1) {

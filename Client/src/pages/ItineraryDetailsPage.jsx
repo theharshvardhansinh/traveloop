@@ -136,24 +136,23 @@ export default function ItineraryDetailsPage() {
         console.error(e);
       }
     }
-    // Fallback if not found
-    setTrip({
-      id: id,
-      name: 'Ahmedabad → Udaipur',
-      startDate: '2026-08-14',
-      endDate: '2026-08-16',
-      from: 'Ahmedabad',
-      to: 'Udaipur',
-      transport: 'Car',
-      tripType: 'family',
-      tags: ['Family'],
-      distanceKm: 262,
-      budgetSpent: 18000,
-    });
+    // If trip not found in localStorage, keep trip as null
   }, [id]);
 
   if (!trip) {
-    return <div className="p-8 text-center text-slate-500">Loading trip details...</div>;
+    return (
+      <div className="min-h-screen bg-[#f7f8fa] flex flex-col items-center justify-center p-8 text-center">
+        <span className="text-5xl mb-4">🗺️</span>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Trip Not Found</h2>
+        <p className="text-slate-500 mb-6 text-sm">We couldn't find the requested trip itinerary.</p>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
   }
 
   const aiDays = trip.aiItinerary?.days || [];
@@ -193,8 +192,10 @@ export default function ItineraryDetailsPage() {
     navigate('/login', { replace: true });
   };
 
-  const startCity = CITIES.find(c => c.name.toLowerCase() === trip.from.toLowerCase());
-  const destCity = CITIES.find(c => c.name.toLowerCase() === trip.to.toLowerCase());
+  const originCity = trip.from || trip.startLocation || 'Ahmedabad';
+  const destinationCity = trip.to || trip.destination || 'Udaipur';
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originCity)}&destination=${encodeURIComponent(destinationCity)}`;
+  const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(`${destinationCity}, India`)}&t=&z=12&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
@@ -325,30 +326,40 @@ export default function ItineraryDetailsPage() {
 
           {/* Right column */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden shadow-md flex flex-col">
-              <div className="px-4 py-3 bg-slate-950/60 border-b border-slate-800 flex justify-between items-center">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Route Map</span>
-                <span className="text-[10px] text-brand-400 font-semibold font-mono">Day {activeDay} Route</span>
-              </div>
-              <div className="relative h-48 w-full bg-slate-900">
-                <svg className="w-full h-full" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <pattern id="grid-mini" width="15" height="15" patternUnits="userSpaceOnUse">
-                      <path d="M 15 0 L 0 0 0 15" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid-mini)" />
-                  {startCity && destCity && (
-                    <>
-                      <line x1={startCity.x/2} y1={startCity.y/2} x2={destCity.x/2} y2={destCity.y/2} stroke="#38bdf8" strokeWidth="2" strokeDasharray="4,4" />
-                      <circle cx={startCity.x/2} cy={startCity.y/2} r="4" fill="#0ea5e9" />
-                      <circle cx={destCity.x/2} cy={destCity.y/2} r="4" fill="#f97316" />
-                    </>
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-xs text-slate-500 font-semibold font-mono">[ Map View ]</span>
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+              <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-slate-800 font-bold tracking-tight">Live Route Map</span>
                 </div>
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-violet-600 hover:text-violet-700 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  Directions ↗
+                </a>
+              </div>
+              
+              <div className="relative h-64 w-full bg-slate-100 overflow-hidden">
+                <iframe
+                  title="Route Map"
+                  src={mapEmbedUrl}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  allowFullScreen
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                <div className="flex items-center gap-1.5 font-medium truncate">
+                  <span className="text-sm">📍</span>
+                  <span className="truncate">{originCity} ➔ {destinationCity}</span>
+                </div>
+                <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-full font-bold text-slate-500 shrink-0">
+                  Day {activeDay}
+                </span>
               </div>
             </div>
 
@@ -356,21 +367,21 @@ export default function ItineraryDetailsPage() {
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider text-slate-400 mb-4">Day Summary</h3>
               <div className="space-y-3.5">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Distance</span>
-                  <span className="font-bold text-slate-700">112 km</span>
+                  <span className="text-slate-400">Total Distance</span>
+                  <span className="font-bold text-slate-700">{trip.distanceKm ? `${trip.distanceKm} km` : '120 km'}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Meal stops</span>
-                  <span className="font-bold text-slate-700">2</span>
+                  <span className="text-slate-400">Meal Stops</span>
+                  <span className="font-bold text-slate-700">{currentDayData?.activities?.filter(a => a.type === 'Meal').length || 1}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">POI stops</span>
-                  <span className="font-bold text-slate-700">2</span>
+                  <span className="text-slate-400">Activities / POIs</span>
+                  <span className="font-bold text-slate-700">{currentDayData?.activities?.filter(a => a.type !== 'Meal' && a.type !== 'Start').length || 3}</span>
                 </div>
                 <hr className="border-slate-100" />
                 <div className="flex justify-between items-center text-sm font-bold pt-1">
-                  <span className="text-slate-800">Est. cost</span>
-                  <span className="text-brand-600">₹9,600</span>
+                  <span className="text-slate-800">Est. Daily Cost</span>
+                  <span className="text-violet-600">₹{Math.round((trip.budgetSpent || 18000) / (daysData.length || 1)).toLocaleString()}</span>
                 </div>
               </div>
             </div>

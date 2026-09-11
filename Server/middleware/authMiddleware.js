@@ -1,5 +1,7 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt     = require('jsonwebtoken');
+const { db }  = require('../config/db');
+const { users } = require('../db/schema');
+const { eq }  = require('drizzle-orm');
 
 /**
  * protect — Verifies Bearer JWT and attaches decoded user to req.user.
@@ -27,7 +29,19 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Attach user (without password) to request
-    const currentUser = await User.findById(decoded.id);
+    const [currentUser] = await db
+      .select({
+        id:           users.id,
+        name:         users.name,
+        email:        users.email,
+        role:         users.role,
+        photoUrl:     users.photoUrl,
+        languagePref: users.languagePref,
+        createdAt:    users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, decoded.id));
+
     if (!currentUser) {
       return res.status(401).json({
         success: false,

@@ -45,24 +45,23 @@ export default function BudgetPage() {
         console.error(e);
       }
     }
-    // Fallback
-    setTrip({
-      id: id,
-      name: 'Ahmedabad → Udaipur',
-      startDate: '2026-08-14',
-      endDate: '2026-08-16',
-      from: 'Ahmedabad',
-      to: 'Udaipur',
-      transport: 'Car',
-      tripType: 'family',
-      tags: ['Family'],
-      distanceKm: 262,
-      budgetSpent: 18000,
-    });
+    // If trip not found, keep null
   }, [id]);
 
   if (!trip) {
-    return <div className="p-8 text-center text-slate-500">Loading budget...</div>;
+    return (
+      <div className="min-h-screen bg-[#f7f8fa] flex flex-col items-center justify-center p-8 text-center">
+        <span className="text-5xl mb-4">💳</span>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Trip Not Found</h2>
+        <p className="text-slate-500 mb-6 text-sm">We couldn't find the budget for this trip.</p>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
   }
 
   // Set actual cost based on trip budgetSpent or default to ₹19,400

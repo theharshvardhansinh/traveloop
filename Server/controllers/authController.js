@@ -1,5 +1,8 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt      = require('jsonwebtoken');
+const bcrypt   = require('bcryptjs');
+const { db }   = require('../config/db');
+const { users } = require('../db/schema');
+const { eq }   = require('drizzle-orm');
 
 // ─── Helper: sign JWT ─────────────────────────────────────────────────────────
 const signToken = (id, role) => {
@@ -10,16 +13,16 @@ const signToken = (id, role) => {
 
 // ─── Helper: send token response ──────────────────────────────────────────────
 const sendTokenResponse = (user, statusCode, res) => {
-  const token = signToken(user._id, user.role);
+  const token = signToken(user.id, user.role);
   res.status(statusCode).json({
     success: true,
     token,
     user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      photoUrl: user.photoUrl,
+      id:           user.id,
+      name:         user.name,
+      email:        user.email,
+      role:         user.role,
+      photoUrl:     user.photoUrl,
       languagePref: user.languagePref,
     },
   });
@@ -48,8 +51,14 @@ const signup = async (req, res, next) => {
       });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, normalizedEmail));
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -57,8 +66,19 @@ const signup = async (req, res, next) => {
       });
     }
 
-    // Create user (password hashed by pre-save hook)
-    const user = await User.create({ name, email, password, role: 'user' });
+    // Hash password (replaces Mongoose pre-save hook)
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Insert user and return the created row
+    const [user] = await db
+      .insert(users)
+      .values({
+        name:     name.trim(),
+        email:    normalizedEmail,
+        password: hashedPassword,
+        role:     'user',
+      })
+      .returning();
 
     sendTokenResponse(user, 201, res);
   } catch (error) {
@@ -97,7 +117,13 @@ const adminSignup = async (req, res, next) => {
       });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, normalizedEmail));
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -105,8 +131,18 @@ const adminSignup = async (req, res, next) => {
       });
     }
 
-    // Create admin user (password hashed by pre-save hook)
-    const user = await User.create({ name, email, password, role: 'admin' });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const [user] = await db
+      .insert(users)
+      .values({
+        name:     name.trim(),
+        email:    normalizedEmail,
+        password: hashedPassword,
+        role:     'admin',
+      })
+      .returning();
 
     sendTokenResponse(user, 201, res);
   } catch (error) {
@@ -130,8 +166,14 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Explicitly select password (it has select:false)
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Select password explicitly (it is not auto-excluded in Drizzle)
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail));
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -139,7 +181,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -169,7 +211,13 @@ const adminLogin = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail));
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -184,7 +232,7 @@ const adminLogin = async (req, res, next) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -206,19 +254,25 @@ const adminLogin = async (req, res, next) => {
 const getMe = async (req, res, next) => {
   try {
     // req.user is already populated by protect middleware
-    const user = await User.findById(req.user._id).populate('savedDestinations', 'name country imageUrl');
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.id));
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
 
     res.status(200).json({
       success: true,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        photoUrl: user.photoUrl,
+        id:           user.id,
+        name:         user.name,
+        email:        user.email,
+        role:         user.role,
+        photoUrl:     user.photoUrl,
         languagePref: user.languagePref,
-        savedDestinations: user.savedDestinations,
-        createdAt: user.createdAt,
+        createdAt:    user.createdAt,
       },
     });
   } catch (error) {
