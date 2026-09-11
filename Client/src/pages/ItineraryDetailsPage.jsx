@@ -156,8 +156,36 @@ export default function ItineraryDetailsPage() {
     return <div className="p-8 text-center text-slate-500">Loading trip details...</div>;
   }
 
-  const daysCount = Math.max(1, Math.ceil((new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24)));
-  const daysData = getItineraryData(trip.from, trip.to, daysCount);
+  const aiDays = trip.aiItinerary?.days || [];
+  const hasAi = aiDays.length > 0;
+  const daysCount = hasAi ? aiDays.length : Math.max(1, Math.ceil((new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24)));
+  
+  const fallbackDays = getItineraryData(trip.from, trip.to, daysCount);
+
+  // Parse AI itinerary or fallback
+  const daysData = hasAi
+    ? aiDays.map((d, i) => ({
+        dayNum: d.dayNumber || i + 1,
+        title: d.title || `Day ${i + 1} — ${trip.to}`,
+        theme: d.theme || 'Explore',
+        weather: d.weatherSummary || 'Pleasant, 26°C',
+        stay: d.nightStay?.name ? `${d.nightStay.name} (${d.nightStay.category || 'Hotel'})` : null,
+        activities: (d.activities || []).map((act) => ({
+          time: act.timeSlot?.split('(')[1]?.split(')')[0] || '10:00 AM',
+          title: act.title,
+          type: act.category || 'Sightseeing',
+          desc: `${act.description} · Est. ₹${act.estimatedCostINR || 300}`,
+        })).concat(
+          d.lunchStop ? [{
+            time: '01:30 PM',
+            title: `Lunch: ${d.lunchStop.name}`,
+            type: 'Meal',
+            desc: `${d.lunchStop.cuisine || 'Local'} cuisine · Est. ₹${d.lunchStop.estimatedCostINR || 500}`
+          }] : []
+        )
+      }))
+    : fallbackDays;
+
   const currentDayData = daysData[activeDay - 1] || daysData[0];
 
   const handleLogout = () => {

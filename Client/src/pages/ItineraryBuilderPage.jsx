@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import axiosInstance from '../api/axiosInstance';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Step definitions
@@ -819,22 +820,27 @@ export default function ItineraryBuilderPage() {
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
     setGenStage(0);
-    
-    // Progress stages
-    const timer1 = setTimeout(() => setGenStage(1), 800);
-    const timer2 = setTimeout(() => setGenStage(2), 1600);
-    const timer3 = setTimeout(() => setGenStage(3), 2400);
-    const timer4 = setTimeout(() => {
-      const themeTag = data.tripTheme === 'combined' 
+
+    const timer1 = setTimeout(() => setGenStage(1), 1000);
+    const timer2 = setTimeout(() => setGenStage(2), 2200);
+    const timer3 = setTimeout(() => setGenStage(3), 3500);
+
+    try {
+      const response = await axiosInstance.post('/itinerary/generate', data);
+      const generatedItinerary = response.data?.itinerary;
+      const weatherInfo = response.data?.weather;
+
+      const themeTag = data.tripTheme === 'combined'
         ? `Combined (${data.themeSliders.spiritual}/${data.themeSliders.nature}/${data.themeSliders.adventure})`
         : data.tripTheme.charAt(0).toUpperCase() + data.tripTheme.slice(1);
 
+      const tripId = Date.now().toString();
       const newTrip = {
-        id: Date.now().toString(),
-        name: `${data.startLocation} → ${data.destination}`,
+        id: tripId,
+        name: generatedItinerary?.tripTitle || `${data.startLocation} → ${data.destination}`,
         startDate: data.startDate,
         endDate: data.endDate,
         transport: data.travelMode.charAt(0).toUpperCase() + data.travelMode.slice(1),
@@ -843,7 +849,9 @@ export default function ItineraryBuilderPage() {
         from: data.startLocation,
         to: data.destination,
         distanceKm: Math.floor(Math.random() * 300) + 220,
-        budgetSpent: Math.floor(Math.random() * 25000) + 12000,
+        budgetSpent: generatedItinerary?.estimatedBudgetINR?.total || 25000,
+        aiItinerary: generatedItinerary,
+        weather: weatherInfo,
       };
 
       let currentTrips = [];
@@ -855,9 +863,16 @@ export default function ItineraryBuilderPage() {
       }
 
       localStorage.setItem('traveloop_trips', JSON.stringify([newTrip, ...currentTrips]));
+      localStorage.setItem(`traveloop_itinerary_${tripId}`, JSON.stringify(newTrip));
+    } catch (err) {
+      console.warn('⚠️ Gemini API call warning/fallback:', err.message);
+    } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setIsGenerating(false);
       navigate('/dashboard');
-    }, 3200);
+    }
   };
 
   const handleNext = () => {

@@ -39,7 +39,10 @@ if (process.env.NODE_ENV === 'development') {
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/authRoutes');
+const itineraryRoutes = require('./routes/itineraryRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/itinerary', itineraryRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
